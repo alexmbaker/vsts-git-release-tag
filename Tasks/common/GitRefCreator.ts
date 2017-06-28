@@ -69,7 +69,7 @@ export abstract class GitRefCreator {
         return defaultValue;
     }
 
-    private async getAllGitArtifacts(bldapi: bld.IBuildApi): Promise < IArtifactData[] > {
+    private async getAllGitArtifacts(bldapi: bld.IBuildApi): Promise<IArtifactData[]> {
         let artifactNames: IArtifactData[] = [];
         let regexp: RegExp = new RegExp("RELEASE\.ARTIFACTS\.(.*)\.REPOSITORY\.PROVIDER", "gi");
 
@@ -80,14 +80,14 @@ export abstract class GitRefCreator {
                 continue;
             }
 
-            if (variableInfo.value !== "TfsGit") {
+            if (variableInfo.value !== "TfsGit" && variableInfo.value !== "Git") {
                 tl.debug(`Matching variable:  ${variableInfo.name}, but artifact type: ${variableInfo.value}`);
                 continue;
             }
 
             let name: string = match[1];
             tl.debug(`Getting repository id for artifact: ${name}`);
-            let repositoryId: string = await this.getRepositoryIdFromBuildNumber(bldapi, name); // This should really be available via a variable
+            let repositoryId: string = await this.getRepositoryId(bldapi, name);
             if (repositoryId == null) {
                 continue; // Error already logged
             }
@@ -104,7 +104,17 @@ export abstract class GitRefCreator {
         return artifactNames;
     }
 
-    private async getRepositoryIdFromBuildNumber(bldapi: bld.IBuildApi, name: string): Promise < string > {
+    //RELEASE.ARTIFACTS.${name}.REPOSITORY_ID new as of 6/2017. Old method needed for a while.
+    private async getRepositoryId(bldapi: bld.IBuildApi, name: string): Promise <string> {
+        let repositoryId: string = tl.getVariable(`RELEASE.ARTIFACTS.${name}.REPOSITORY_ID`);
+        if (repositoryId != null && repositoryId != "") {
+            return repositoryId;
+        }
+
+        return await this.getRepositoryIdFromBuildNumber(bldapi, name);
+    }
+
+    private async getRepositoryIdFromBuildNumber(bldapi: bld.IBuildApi, name: string): Promise <string> {
         let buildidVariable: string = `RELEASE.ARTIFACTS.${name}.BUILDID`;
         let buildid: string = tl.getVariable(buildidVariable);
 
